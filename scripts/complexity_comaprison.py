@@ -330,13 +330,6 @@ complexity_plot.set_ylabel("Values", fontsize = 20)
 complexity_plot.set_title("Complexity parameters for different waveforms",
                           fontsize = 20)
 
-plt.legend(labels=["Sine wave (10 Hz)",
-                   "Noisy sine wave",
-                   "Sine waves of 8 to 12 Hz mixed",
-                   "Saw tooth wave",
-                   "Irregular sawtooth wave",
-                   "Gaussian noise"])
-
 fig = complexity_plot.get_figure()
 fig.savefig(fname = 'comapre_complexity_zoomed.png',
             dpi = 600)
