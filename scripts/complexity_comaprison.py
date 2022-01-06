@@ -181,19 +181,25 @@ def entropy(string):
 #%% Generate waveforms
 # Sine wave of 10 Hz
 sine_wave = generate_signal(30, 250,[10],func="sin", plot=True)
+plt.title('Sine wave 10 Hz')
+
 sine_wave_noisy = generate_signal(30, 250,[10],func="sin", plot=True, add_noise = 5)
+plt.title('Noisy sine wave')
+
 sine_wave_mix_8_to_12 = generate_signal(30, 250,[8,9,10,11,12],func="sin", plot=True)
+plt.title('Sine wave mix of 8-12 Hz')
 
 # sawtooth
 time = np.linspace(0, 30, 250*30)
 saw_tooth = signal.sawtooth(2 * np.pi * 5 * time)
 plt.plot(time, saw_tooth)
+plt.title('Sawtooth wave')
 
 # irregular sawtooth
 irregular_sawtooth = np.concatenate(
-    [signal.sawtooth(2 * np.pi * np.linspace(0, 1, random.randrange(30, 150))) for _ in range(10)]
+    [signal.sawtooth(2 * np.pi * np.linspace(0, 1, random.randrange(30, 7500))) for _ in range(10)]
 )
-
+plt.title('Irregular saw tooth wave')
 plt.plot(irregular_sawtooth)
 
 irregular_sawtooths = np.concatenate((irregular_sawtooth,irregular_sawtooth,irregular_sawtooth,
@@ -203,6 +209,7 @@ irregular_sawtooths = np.concatenate((irregular_sawtooth,irregular_sawtooth,irre
 # gaussian noise
 gaussian_noise_series = np.array([gauss(0.0, 1.0) for i in range(7500)])
 plt.plot(gaussian_noise_series)
+plt.title('Gaussian noise')
 
 # time series list
 wave_names = ['sine_wave','sine_wave_noisy',
