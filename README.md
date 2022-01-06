@@ -19,7 +19,7 @@
 ---
 - Here are the images from comparison table
 
-![](https://github.com/rahulvenugopal/ComapreComplexity/blob/main/images/comapre_complexity.png)
+![cc](https://github.com/rahulvenugopal/ComapreComplexity/blob/main/images/comapre_complexity.png)
 
 - Zooming in by removing Katz dimension for scaling
-![](https://github.com/rahulvenugopal/ComapreComplexity/blob/main/images/comapre_complexity_zoomed.png)
+![zoom](https://github.com/rahulvenugopal/ComapreComplexity/blob/main/images/comapre_complexity_zoomed.png)
