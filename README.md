@@ -25,4 +25,4 @@
 ![zoom](https://github.com/rahulvenugopal/ComapreComplexity/blob/main/images/comapre_complexity_zoomed.png)
 
 - Refer below image to see the waveforms
-![wave_collage](https://raw.githubusercontent.com/rahulvenugopal/ComapreComplexity/main/images/FinalColage.png)
+![wave_collage](https://raw.githubusercontent.com/rahulvenugopal/ComapreComplexity/main/images/FinalCollage.png)
