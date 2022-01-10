@@ -26,3 +26,30 @@
 
 - Refer below image to see the waveforms
 ![wave_collage](https://raw.githubusercontent.com/rahulvenugopal/ComapreComplexity/main/images/FinalCollage.png)
+
+---
+## Detrended Fluctuation Analysis (DFA)
+![DFA](https://github.com/rahulvenugopal/ComapreComplexity/blob/main/images/DFA.jpg)
+
+## Part 1
+- start with 1D time series data
+- create different window lengths
+- this starts with just `4` data points long window upto window sizes `1/10th` of total data lengths
+- The window lengths are set at logarithmic gaps
+- subtract mean from the entire data
+- now do a cimulative sum of these deviations from mean
+- that's the data which goes to DFA analysis
+
+### Part 2
+- for each window length, fit a line and save the parametres of line fit (slope and intercept)
+- within each window length, this fitting of a line is done in a sliding windiw manner
+- detrend the data using the trend line (as per previous fit) and find standard deviation of this time series
+- find the average of all these fluctuations across various segments
+- for one window length we get `one` average `standard deviation` value
+- after doing above steps we get different `SD` values for different `window lengths`
+- finally, plot these fluctuations and window lengths on a log-log scale
+- fir a robust line (using RANSAC method)
+- DFA is the parameters of this robust fit
+
+## To Do
+- Explanations, interpretations
