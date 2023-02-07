@@ -31,7 +31,7 @@
 - The deep question is what aspects of complexity, regularity, patterns are geting captured in each method
 
 ---
-## Detrended Fluctuation Analysis (DFA)
+## Detrended Fluctuation Analysis (DFA) | Based on the awesome Antropy package's [source code[(https://github.com/raphaelvallat/antropy)
 ![DFA](https://github.com/rahulvenugopal/ComapreComplexity/blob/main/images/DFA.jpg)
 
 - Look at the colored wiggles and lines respectively from B and C
