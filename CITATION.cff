@@ -1,0 +1,26 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Intuitive understanding of complexity parameters
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Rahul Venugopal
+    orcid: 'https://orcid.org/0000-0001-5348-8845'
+    email: rhlvenugopal@gmail.com
+repository-code: >-
+  https://github.com/rahulvenugopal/Intuitive-Explanations-of-Complexity-Parameters
+abstract: >-
+  A tutorial GitHubrepo aimed to provide intuitive
+  explanations for various complexity parameters widely used
+keywords:
+  - time series
+  - complexity
+  - dynamical systems
+  - EEG
+  - intuition
+license: CC-BY-NC-4.0
+date-released: '2023-02-06'
