@@ -65,14 +65,14 @@
 - After doing above steps we get `SD` values for each `window length`
 - Finally, plot these fluctuations and window lengths on a `log-log` scale
 - Fit a robust line (using RANSAC method, robust to outliers)
-- DFA is the parameters of this robust fit
+- DFA exponent is the slope of this robust fit
 
 #### To be updated
 - Explanations, interpretations, intuitions (why cumulative sum, why detrending etc. etc.)
 - I am open to collaborations on these aspects and beyond :handshake:
 
 ---
-## Sample Entropy
+## Sample Entropy | Based on the awesome Antropy package's [source code](https://github.com/raphaelvallat/antropy/blob/master/antropy/entropy.py)
 
 
 ---
