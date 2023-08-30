@@ -20,10 +20,10 @@
 ---
 - Here are the images from comparison table
 
-![cc](https://github.com/rahulvenugopal/ComapreComplexity/blob/main/images/comapre_complexity.png)
+![cc](https://raw.githubusercontent.com/rahulvenugopal/Intuitive-Explanations-of-Complexity-Parameters/main/images/comapre_complexity.png)
 
 - Zooming in by removing Katz dimension for scaling
-![zoom](https://github.com/rahulvenugopal/ComapreComplexity/blob/main/images/comapre_complexity_zoomed.png)
+![zoom](https://raw.githubusercontent.com/rahulvenugopal/Intuitive-Explanations-of-Complexity-Parameters/main/images/comapre_complexity_zoomed.png)
 
 - Refer below image to see the waveforms
 ![wave_collage](https://raw.githubusercontent.com/rahulvenugopal/ComapreComplexity/main/images/FinalCollage.png)
