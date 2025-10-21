@@ -1,0 +1,24 @@
+Deterministic Processes vs Stochastic processes
+
+- Stochastic processes involves randomness
+- stationary processes are independent of time
+- Randomness can be predictable also
+- Give example of throwing two dice, add the number and generating the time series
+- Markovian process: The next state depends only on the current state, not the entire history
+- Pizza, Berger, Sandwich. https://www.youtube.com/watch?v=i3AkTO9HLXo. Use the die example
+- https://github.com/Suji04/NormalizedNerd/blob/master/Miscellaneous/Markov_Chain_Simulation.ipynb
+- Deterministic systems can also be non-stationary. take a + b *t. No error term
+- The properties of this are non-stationary
+- There are stationary and non-stationary Markov chains
+- Stationarity is a separate property from the Markov property
+- When time influences the generation process, they become non-stationary
+- To achieve stability, the process would take some time
+- De-trending is a common method used to remove one type of non-stationarity (deterministic trend)
+- The purpose is to remove a deterministic trend and a stationary residue
+- Scale free processes can be stationary or non-stationary
+- Subtraction of mean eliminates the global trend. But, this does not change the spectral properties except the DC offset or the 0 Hz
+- Give the example of random walk as an intuition for stationary probabilistic process
+- This is a memory less process
+- Explain why we do cumulative sum (to get it in random walk style)
+- Envelope is like trend in the data
+- Why do LRTC exist in brain | Criticality

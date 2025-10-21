@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>1D Random Walk — Space‑Time + Time Series (No Metrics)</title>
+<style>
+  :root {
+    --bg:#000; --card:#001a00; --ink:#00ff66; --muted:#00cc44; --accent:#00ff99;
+    --grid:#002200; --axis:#00cc44; --stick:#00ff66; --trail:rgba(255,255,255,0.15);
+    --series:#00ff99;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Consolas,monospace}
+  header{padding:16px clamp(16px,4vw,48px);border-bottom:1px solid #003300}
+  h1{margin:0 0 6px 0;font-size:clamp(20px,2.4vw,30px);color:var(--accent)}
+  .sub{margin:0;color:var(--muted)}
+  main{padding:16px clamp(16px,4vw,48px);display:grid;gap:12px}
+  .panel{background:var(--card);border:1px solid #003300;border-radius:14px;padding:12px}
+  .controls{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:end}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  select,input[type=range],button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #004d00;background:#000;color:var(--ink);outline:none}
+  button{background:linear-gradient(180deg,#004d00,#002200);cursor:pointer;font-weight:600}
+  button:hover{filter:brightness(1.2)}
+  .row{display:grid;gap:12px;grid-template-columns:1fr 0.9fr}
+  @media(max-width:980px){.row{grid-template-columns:1fr}}
+  canvas{width:100%;background:#000;border:1px solid #003300;border-radius:10px}
+  .small{font-size:12px;color:var(--muted)}
+  .note{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>1D Random Walk — Space‑Time + Time Series</h1>
+  <p class="sub">Left: stick with faint white trail (no green path). Right: time series x(t). Metrics removed.</p>
+</header>
+
+<main>
+  <section class="panel controls">
+    <div>
+      <label for="noise">Step generator</label>
+      <select id="noise">
+        <option value="white" selected>White noise (coin flips)</option>
+        <option value="pink">Pink noise (1/f)</option>
+        <option value="sin">Sinusoidal</option>
+        <option value="lrtc_pos">LRTC (positive / persistent)</option>
+        <option value="lrtc_neg">LRTC (negative / anti-persistent)</option>
+      </select>
+    </div>
+    <div>
+      <label id="paramLabel" for="param">Parameter</label>
+      <input id="param" type="range" min="0" max="1" step="0.01" value="0.30"/>
+      <div class="small"><span id="paramName">d</span> = <span id="paramVal">0.30</span></div>
+    </div>
+    <div>
+      <label for="speed">Step speed (ms)</label>
+      <input id="speed" type="range" min="40" max="400" step="10" value="120"/>
+      <div class="small"><span id="speedVal">120</span> ms per step</div>
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button id="start">Start</button>
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <button id="reset">Reset</button>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="panel">
+      <h3 style="margin:6px 0 10px;">Space‑Time Walk (x vs time)</h3>
+      <canvas id="arena" width="720" height="540"></canvas>
+      <p class="note">x-axis: position; y-axis: time (0 at bottom). Faint white dots mark the trail.</p>
+    </div>
+    <div class="panel">
+      <h3 style="margin:6px 0 10px;">Time Series x(t)</h3>
+      <canvas id="plot" width="520" height="540"></canvas>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  const N = 100;
+
+  // Left panel scale: compact
+  const STICK_SCALE = 0.7;
+
+  const arena = document.getElementById('arena');
+  const plot = document.getElementById('plot');
+  const cA = arena.getContext('2d');
+  const cP = plot.getContext('2d');
+
+  const noiseSel = document.getElementById('noise');
+  const param = document.getElementById('param');
+  const paramLabel = document.getElementById('paramLabel');
+  const paramName = document.getElementById('paramName');
+  const paramVal = document.getElementById('paramVal');
+  const speed = document.getElementById('speed');
+  const speedVal = document.getElementById('speedVal');
+  const startBtn = document.getElementById('start');
+  const resetBtn = document.getElementById('reset');
+
+  speed.addEventListener('input', ()=> speedVal.textContent = speed.value);
+  param.addEventListener('input', ()=> paramVal.textContent = Number(param.value).toFixed(2));
+  noiseSel.addEventListener('change', updateParamUI);
+
+  function updateParamUI(){
+    const mode = noiseSel.value;
+    if(mode === 'white' || mode === 'pink'){
+      param.disabled = true;
+      paramLabel.textContent = 'Parameter (n/a)';
+      paramName.textContent = '—';
+      paramVal.textContent = '—';
+    } else if(mode === 'sin'){
+      param.disabled = false;
+      param.min = 0.02; param.max = 0.5; param.step = 0.01; param.value = 0.10;
+      paramLabel.textContent = 'Sine frequency (cycles/step)';
+      paramName.textContent = 'f';
+      paramVal.textContent = Number(param.value).toFixed(2);
+    } else {
+      // LRTC
+      param.disabled = false;
+      param.min = 0.0; param.max = 0.45; param.step = 0.01; param.value = 0.30;
+      paramLabel.textContent = 'LRTC strength (|d|)';
+      paramName.textContent = 'd';
+      paramVal.textContent = Number(param.value).toFixed(2);
+    }
+  }
+  updateParamUI();
+
+  // --- Helpers ---
+  function clear(ctx, canvas){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  function niceStep(raw){
+    const power = Math.pow(10, Math.floor(Math.log10(Math.max(1e-9, raw))));
+    const n = raw / power;
+    let step;
+    if (n < 1.5) step = 1;
+    else if (n < 3) step = 2;
+    else if (n < 7) step = 5;
+    else step = 10;
+    return step * power;
+  }
+
+  // Left axes
+  function drawAxesSpaceTime(xMin, xMax){
+    const padL = 60, padR = 20, padT = 20, padB = 40;
+    const W = arena.width, H = arena.height;
+    const L = padL, R = W - padR, T = padT, B = H - padB;
+
+    const grid = getComputedStyle(document.documentElement).getPropertyValue('--grid');
+    const axis = getComputedStyle(document.documentElement).getPropertyValue('--axis');
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+
+    cA.strokeStyle = grid; cA.lineWidth = 1;
+    const spanX = xMax - xMin || 1;
+    const stepX = niceStep(spanX/10);
+    const xStart = Math.ceil(xMin/stepX)*stepX;
+    cA.beginPath();
+    for(let x=xStart; x<=xMax; x+=stepX){
+      const xp = L + (R-L)*((x-xMin)/spanX);
+      cA.moveTo(xp,T); cA.lineTo(xp,B);
+    }
+    for(let t=0;t<=N;t+=10){
+      const yp = B - (B-T)*(t/N);
+      cA.moveTo(L,yp); cA.lineTo(R,yp);
+    }
+    cA.stroke();
+
+    cA.strokeStyle = axis;
+    cA.beginPath(); cA.moveTo(L,B); cA.lineTo(R,B); cA.moveTo(L,T); cA.lineTo(L,B); cA.stroke();
+
+    cA.fillStyle = accent; cA.font = '12px Consolas';
+    cA.textAlign='right'; cA.textBaseline='middle';
+    for(let t=0;t<=N;t+=10){ const yp=B-(B-T)*(t/N); cA.fillText(String(t), L-8, yp); }
+    cA.textAlign='center'; cA.textBaseline='top';
+    for(let x=xStart; x<=xMax; x+=stepX){ const xp=L+(R-L)*((x-xMin)/spanX); cA.fillText(String(x), xp, B+8); }
+    cA.fillText('x (position)', (L+R)/2, B+24);
+    cA.save(); cA.translate(18,(T+B)/2); cA.rotate(-Math.PI/2); cA.fillText('time (step)',0,0); cA.restore();
+
+    return {L,R,T,B};
+  }
+
+  // Right axes
+  function drawAxesTimeSeries(yMin, yMax){
+    const padL = 50, padR = 20, padT = 20, padB = 40;
+    const W = plot.width, H = plot.height;
+    const L = padL, R = W - padR, T = padT, B = H - padB;
+
+    const grid = getComputedStyle(document.documentElement).getPropertyValue('--grid');
+    const axis = getComputedStyle(document.documentElement).getPropertyValue('--axis');
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+
+    cP.strokeStyle = grid; cP.lineWidth = 1;
+    cP.beginPath();
+    for(let i=0;i<=10;i++){ const xp=L+(R-L)*(i/10); cP.moveTo(xp,T); cP.lineTo(xp,B); }
+    for(let i=0;i<=10;i++){ const yp=T+(B-T)*(i/10); cP.moveTo(L,yp); cP.lineTo(R,yp); }
+    cP.stroke();
+
+    cP.strokeStyle = axis;
+    cP.beginPath(); cP.moveTo(L,B); cP.lineTo(R,B); cP.moveTo(L,T); cP.lineTo(L,B); cP.stroke();
+
+    cP.fillStyle = accent; cP.font = '12px Consolas';
+    cP.fillText('t (step)', (L+R)/2, B+24);
+    cP.save(); cP.translate(14,(T+B)/2); cP.rotate(-Math.PI/2); cP.fillText('x(t)', 0, 0); cP.restore();
+
+    cP.fillStyle = '#00ff66'; cP.textAlign='center'; cP.textBaseline='top';
+    for(let t=0;t<=N;t+=10){ const xp=L+(R-L)*(t/N); cP.fillText(String(t), xp, B+8); }
+    cP.textAlign = 'right'; cP.textBaseline='middle';
+    const spanY=yMax-yMin||1; const stepY=niceStep(spanY/8); const yStart=Math.ceil(yMin/stepY)*stepY;
+    for(let y=yStart;y<=yMax;y+=stepY){ const yp=T+(B-T)*(1-(y-yMin)/(spanY)); cP.fillText(String(y), L-8, yp); }
+    return {L,R,T,B};
+  }
+
+  function drawStick(ctx,x,y,phase){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--stick');
+    ctx.lineWidth=1.7;
+    const head=6*STICK_SCALE, bodyTop=-4*STICK_SCALE, bodyBot=16*STICK_SCALE;
+    const armAmp=6*STICK_SCALE, legAmp=8*STICK_SCALE;
+
+    ctx.beginPath(); ctx.arc(0, -10*STICK_SCALE, head, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, bodyTop); ctx.lineTo(0, bodyBot); ctx.stroke();
+    const arm=Math.sin(phase)*armAmp;
+    ctx.beginPath();
+    ctx.moveTo(0,2*STICK_SCALE); ctx.lineTo(-10*STICK_SCALE, 6*STICK_SCALE + arm);
+    ctx.moveTo(0,2*STICK_SCALE); ctx.lineTo( 10*STICK_SCALE, 6*STICK_SCALE - arm);
+    ctx.stroke();
+    const leg=Math.sin(phase)*legAmp;
+    ctx.beginPath();
+    ctx.moveTo(0, bodyBot); ctx.lineTo(-8*STICK_SCALE, (26-leg)*STICK_SCALE);
+    ctx.moveTo(0, bodyBot); ctx.lineTo( 8*STICK_SCALE, (26+leg)*STICK_SCALE);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTrail(xs, L, R, T, B, xMin, xMax){
+    const trailStyle = getComputedStyle(document.documentElement).getPropertyValue('--trail');
+    cA.fillStyle = trailStyle;
+    for(let t=0;t<xs.length;t++){
+      const xp = L + (R-L) * ((xs[t] - xMin)/((xMax - xMin)||1));
+      const yp = B - (B-T) * (t/N);
+      cA.beginPath(); cA.arc(xp, yp, 1.5, 0, Math.PI*2); cA.fill();
+    }
+  }
+
+  function drawSeries(xs, axes, yMin, yMax){
+    const L=axes.L,R=axes.R,T=axes.T,B=axes.B;
+    cP.save(); cP.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--series'); cP.lineWidth=2;
+    cP.beginPath();
+    for(let i=0;i<xs.length;i++){
+      const xp = L + (R-L) * (i/N);
+      const yp = T + (B-T) * (1 - (xs[i] - yMin)/((yMax - yMin)||1));
+      if(i===0) cP.moveTo(xp, yp); else cP.lineTo(xp, yp);
+    }
+    cP.stroke(); cP.restore();
+  }
+
+  // ---- Noise generators ----
+  function whiteSteps(n){ return Array.from({length:n}, ()=> Math.random()<0.5 ? -1 : 1); }
+  function pinkNoise(n, octaves=8){
+    const rows = new Array(octaves).fill(0).map(()=>({val:0, counter:0}));
+    const out = new Float64Array(n);
+    for(let i=0;i<n;i++){
+      let sum=0;
+      for(let r=0;r<octaves;r++){
+        if(rows[r].counter===0){ rows[r].val = Math.random()*2 - 1; rows[r].counter = 1<<r; }
+        sum += rows[r].val; rows[r].counter--;
+      }
+      out[i] = sum / octaves;
+    }
+    return Array.from(out).map(v=>v>=0?1:-1);
+  }
+  function sinusoidalSteps(n, freq){
+    const steps = new Array(n);
+    const phase = Math.random()*Math.PI*2;
+    for(let t=0;t<n;t++){
+      const s = Math.sin(2*Math.PI*freq*t + phase) + (Math.random()-0.5)*1e-3;
+      steps[t] = s>=0?1:-1;
+    }
+    return steps;
+  }
+  function fracNoise(n, d){
+    const eps = new Float64Array(n);
+    for(let i=0;i<n;i+=2){
+      const u=Math.random()||1e-10,v=Math.random()||1e-10;
+      const r=Math.sqrt(-2*Math.log(u));
+      const z0=r*Math.cos(2*Math.PI*v), z1=r*Math.sin(2*Math.PI*v);
+      eps[i]=z0; if(i+1<n) eps[i+1]=z1;
+    }
+    const w=new Float64Array(n); w[0]=1;
+    for(let k=1;k<n;k++) w[k]=w[k-1]*((k-1-d)/k);
+    const y=new Float64Array(n);
+    for(let t=0;t<n;t++){ let s=0; for(let k=0;k<=t;k++) s+=w[k]*eps[t-k]; y[t]=s; }
+    let mu=0; for(let i=0;i<n;i++) mu+=y[i]; mu/=n;
+    let sd=0; for(let i=0;i<n;i++){ const z=y[i]-mu; sd+=z*z; } sd=Math.sqrt(sd/(n-1||1))||1;
+    for(let i=0;i<n;i++) y[i]=(y[i]-mu)/sd;
+    return Array.from(y);
+  }
+  function lrtcSteps(n, d){ return fracNoise(n, d).map(v=>v>=0?1:-1); }
+
+  function generateSteps(){
+    const mode = noiseSel.value;
+    if(mode==='white') return whiteSteps(N);
+    if(mode==='pink')  return pinkNoise(N, 8);
+    if(mode==='sin')   return sinusoidalSteps(N, parseFloat(param.value));
+    if(mode==='lrtc_pos') return lrtcSteps(N, Math.min(0.45, Math.max(0, parseFloat(param.value))));
+    if(mode==='lrtc_neg') return lrtcSteps(N, -Math.min(0.45, Math.max(0, parseFloat(param.value))));
+    return whiteSteps(N);
+  }
+
+  let animId=null;
+
+  function run(){
+    cancelAnimationFrame(animId);
+    const steps = generateSteps();
+    const x = new Array(N+1); x[0]=0;
+    for(let t=1;t<=N;t++) x[t]=x[t-1]+steps[t-1];
+
+    // x-range for left panel
+    const minX = Math.min(...x), maxX = Math.max(...x);
+    const pad = 2;
+    let xMin = Math.floor(minX - pad), xMax = Math.ceil(maxX + pad);
+    if (xMax - xMin < 10){ const center=(xMax+xMin)/2; xMin=Math.floor(center-5); xMax=Math.ceil(center+5); }
+
+    // y-range for right plot
+    let yMin = Math.min(...x), yMax = Math.max(...x);
+    if(yMax-yMin < 6){ const c=(yMax+yMin)/2; yMin=Math.floor(c-3); yMax=Math.ceil(c+3); }
+
+    // Animate
+    let t = 0, phase=0, frame=0;
+    const frameInterval = Math.max(1, Math.floor(parseInt(speed.value,10)/16));
+
+    function tick(){
+      // Left: axes + trail + stick (no green path line)
+      clear(cA, arena);
+      const ax = drawAxesSpaceTime(xMin, xMax);
+      drawTrail(x.slice(0, t+1), ax.L, ax.R, ax.T, ax.B, xMin, xMax);
+      const currX = ax.L + (ax.R-ax.L) * ((x[t] - xMin)/((xMax - xMin)||1));
+      const currY = ax.B - (ax.B-ax.T) * (t/N);
+      drawStick(cA, currX, currY, phase);
+      phase += 0.3;
+
+      // Right: time series up to t
+      clear(cP, plot);
+      const axes = drawAxesTimeSeries(yMin, yMax);
+      const partial = x.slice(0, t+1);
+      drawSeries(partial, axes, yMin, yMax);
+
+      if(t >= N){ cancelAnimationFrame(animId); return; }
+      if(frame % frameInterval === 0){ t++; }
+      frame++;
+      animId = requestAnimationFrame(tick);
+    }
+    animId = requestAnimationFrame(tick);
+  }
+
+  function reset(){
+    cancelAnimationFrame(animId);
+    clear(cA,arena); clear(cP,plot);
+    drawAxesSpaceTime(-10,10);
+    drawAxesTimeSeries(-5,5);
+  }
+
+  startBtn.addEventListener('click', run);
+  resetBtn.addEventListener('click', reset);
+  reset();
+})();
+</script>
+</body>
+</html>
